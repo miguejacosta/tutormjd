@@ -414,12 +414,11 @@ header {
     title="Enviar"
   >➤</button>
 </div>
-
 <script>
 // ── Configuración de URL CORRECTA ─────────────────────────────────────
 const SERVER_URL = "https://tutor-mjd-api-411083505938.us-central1.run.app/chat";
 
-// ── Estado ───────────────────────────────────────────────────────────
+// ── Estado (¡Súper importantes, no borrarlas!) ────────────────────────
 let historialSesion     = [];
 let archivoActualBase64 = null;
 let mimeTypeActual      = null;
@@ -429,6 +428,7 @@ let mimeTypeActual      = null;
   const simbolos = ['∑', 'π', '∫', '√', 'Δ', '∞', 'θ', 'α', 'β', 'λ',
                     'x²', 'f(x)', 'dy/dx', '=', '+', '÷', '×', 'log', 'sin', 'cos'];
   const container = document.getElementById('particles');
+  if(!container) return;
   simbolos.forEach((sym, i) => {
     const el = document.createElement('span');
     el.className = 'particle';
@@ -473,7 +473,6 @@ function agregarIndicadorEscritura() {
   return div;
 }
 
-// Protege el LaTeX durante el parseo de Markdown
 function procesarTextoSeguro(texto) {
   const bloques = [];
   const protegido = texto.replace(/(\$\$[\s\S]*?\$\$|\$[^\$\n]+?\$)/g, match => {
@@ -487,66 +486,61 @@ function procesarTextoSeguro(texto) {
   return html;
 }
 
-// ── Manejo de archivo ─────────────────────────────────────────────────
+// ── Manejo de archivo (Blindado) ──────────────────────────────────────
 function manejarArchivo() {
+  try {
+    const input = document.getElementById('file_input');
+    if (!input || !input.files || input.files.length === 0) return;
+    
+    const file = input.files;
+    const btnEnviar = document.getElementById('btn_enviar');
+    const previewContainer = document.getElementById('preview_container');
+    const fileNameDisplay = document.getElementById('file_name');
 
-const file_input = document.getElementById("file_input");
-const file = file_input.files;   
+    if (btnEnviar) btnEnviar.disabled = true;
+    if (previewContainer) previewContainer.style.display = 'flex';
+    if (fileNameDisplay) fileNameDisplay.textContent = '⏳ Procesando...';
 
-if (!file) return;
+    mimeTypeActual = file.type || 'application/pdf';
 
-const btn = document.getElementById("btn_enviar");
-if(btn) btn.disabled = true;
+    const reader = new FileReader();
 
-const nombreArchivo = file.name || "Archivo adjunto";
+    reader.onload = function(e) {
+      try {
+        archivoActualBase64 = e.target.result.split(',');
+        if (fileNameDisplay) fileNameDisplay.textContent = '✅ ' + file.name;
+        if (btnEnviar) btnEnviar.disabled = false;
+      } catch (err) {
+        if (fileNameDisplay) fileNameDisplay.textContent = '⚠️ Error interno: ' + err.message;
+        if (btnEnviar) btnEnviar.disabled = false;
+      }
+    };
 
-document.getElementById("file_name").innerText = "⏳ Procesando...";
-document.getElementById("preview_container").style.display = "flex";
-
-mimeTypeActual = file.type || "application/pdf";
-
-const reader = new FileReader();
-
-reader.onload = function(e) {
-
-    archivoActualBase64 = e.target.result.split(',');
-
-    document.getElementById("file_name").innerText =
-        "✅ " + nombreArchivo;
-
-    if(btn) btn.disabled = false;
-};
-
-reader.onerror = function() {
-    document.getElementById("file_name").innerText =
-        "⚠️ Error al leer archivo";
-    if(btn) btn.disabled = false;
-};
-
-reader.readAsDataURL(file);
-}
-
-    // Si ocurre un error de lectura nativo del navegador
-    reader.onerror = function(err) {
-      console.error("Tutor MJD - Error de FileReader:", err);
-      fileNameDisplay.innerText = '⚠️ Error al leer el archivo. Intenta con otra foto.';
+    reader.onerror = function() {
+      if (fileNameDisplay) fileNameDisplay.textContent = '⚠️ Error al leer el archivo desde tu dispositivo.';
       if (btnEnviar) btnEnviar.disabled = false;
     };
 
     reader.readAsDataURL(file);
     
   } catch (error) {
-    console.error("Tutor MJD - Error general:", error);
-    document.getElementById('file_name').innerText = '⚠️ Ocurrió un error inesperado';
+    // Si algo falla, mostramos el error técnico en la barra para diagnosticar
+    const fileNameDisplay = document.getElementById('file_name');
+    if (fileNameDisplay) {
+        fileNameDisplay.textContent = '⚠️ Error: ' + error.message;
+    }
   }
 }
 
 function limpiarArchivo() {
-  document.getElementById('file_input').value = '';
+  const input = document.getElementById('file_input');
+  if(input) input.value = '';
   archivoActualBase64 = null;
   mimeTypeActual      = null;
-  document.getElementById('file_name').textContent = '';
-  document.getElementById('preview_container').style.display = 'none';
+  const fileNameDisplay = document.getElementById('file_name');
+  if(fileNameDisplay) fileNameDisplay.textContent = '';
+  const previewContainer = document.getElementById('preview_container');
+  if(previewContainer) previewContainer.style.display = 'none';
 }
 
 // ── Envío de mensaje ──────────────────────────────────────────────────
@@ -556,7 +550,6 @@ async function enviarMensaje() {
 
   if (!txt && !archivoActualBase64) return;
 
-  // Construir vista previa del mensaje de usuario
   let vistaPrevia = txt ? marked.parse(txt) : '';
   if (archivoActualBase64) {
     const nombreArchivo = document.getElementById('file_name').textContent.replace('✅ ', '');
@@ -583,7 +576,8 @@ async function enviarMensaje() {
   limpiarArchivo();
 
   const indicador = agregarIndicadorEscritura();
-  document.getElementById('btn_enviar').disabled = true;
+  const btnEnviar = document.getElementById('btn_enviar');
+  if(btnEnviar) btnEnviar.disabled = true;
 
   try {
     const res  = await fetch(SERVER_URL, {
@@ -608,16 +602,20 @@ async function enviarMensaje() {
     agregarMensaje('⚠️ Error de conexión. Revisa tu internet o avisa a tu profesor.', 'bot');
     console.error('Error al contactar el servidor:', err);
   } finally {
-    document.getElementById('btn_enviar').disabled = false;
+    if(btnEnviar) btnEnviar.disabled = false;
   }
 }
 
 // ── Enter para enviar ─────────────────────────────────────────────────
-document.getElementById('mensaje').addEventListener('keypress', e => {
-  if (e.key === 'Enter' && !document.getElementById('btn_enviar').disabled) {
-    enviarMensaje();
-  }
-});
+const inputMensaje = document.getElementById('mensaje');
+if(inputMensaje) {
+  inputMensaje.addEventListener('keypress', e => {
+    const btnEnviar = document.getElementById('btn_enviar');
+    if (e.key === 'Enter' && btnEnviar && !btnEnviar.disabled) {
+      enviarMensaje();
+    }
+  });
+}
 </script>
 </body>
 </html>
