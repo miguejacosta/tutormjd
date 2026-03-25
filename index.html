@@ -489,8 +489,11 @@ function procesarTextoSeguro(texto) {
 
 // ── Manejo de archivo ─────────────────────────────────────────────────
 function manejarArchivo() {
+
   const input = document.getElementById('file_input');
-  const file  = input.files;   // ← BUG FIX: acceder al índice
+
+  // ✅ FIX 1: tomar el archivo real
+  const file = input.files[0];
   if (!file) return;
 
   const btnEnviar = document.getElementById('btn_enviar');
@@ -498,19 +501,23 @@ function manejarArchivo() {
 
   document.getElementById('file_name').textContent = '⏳ Procesando...';
   document.getElementById('preview_container').style.display = 'flex';
+
   mimeTypeActual = file.type || 'application/pdf';
 
   const reader = new FileReader();
 
   reader.onload = function(e) {
-    // BUG FIX: split(',') para obtener solo el base64, no el data URL completo
-    archivoActualBase64 = e.target.result.split(',');
+
+    // ✅ FIX 2: SOLO el base64 (lo que espera Cloud Run)
+    archivoActualBase64 = e.target.result.split(',')[1];
+
     document.getElementById('file_name').textContent = '✅ ' + file.name;
     btnEnviar.disabled = false;
   };
 
   reader.onerror = function() {
-    document.getElementById('file_name').textContent = '⚠️ Error al leer el archivo';
+    document.getElementById('file_name').textContent =
+      '⚠️ Error al leer el archivo';
     btnEnviar.disabled = false;
   };
 
