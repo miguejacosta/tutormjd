@@ -489,31 +489,49 @@ function procesarTextoSeguro(texto) {
 
 // ── Manejo de archivo ─────────────────────────────────────────────────
 function manejarArchivo() {
-  const input = document.getElementById('file_input');
-  const file  = input.files;
-  if (!file) return;
+  try {
+    const input = document.getElementById('file_input');
+    const file  = input.files;
+    if (!file) return;
 
-  const btnEnviar = document.getElementById('btn_enviar');
-  btnEnviar.disabled = true;
+    const btnEnviar = document.getElementById('btn_enviar');
+    if (btnEnviar) btnEnviar.disabled = true;
 
-  document.getElementById('file_name').textContent = '⏳ Procesando...';
-  document.getElementById('preview_container').style.display = 'flex';
-  mimeTypeActual = file.type || 'application/pdf';
+    const fileNameDisplay = document.getElementById('file_name');
+    const previewContainer = document.getElementById('preview_container');
 
-  const reader = new FileReader();
+    fileNameDisplay.innerText = '⏳ Procesando...';
+    previewContainer.style.display = 'flex';
+    mimeTypeActual = file.type || 'application/pdf';
 
-  reader.onload = function(e) {
-    archivoActualBase64 = e.target.result.split(',');
-    document.getElementById('file_name').textContent = '✅ ' + file.name;
-    btnEnviar.disabled = false;
-  };
+    const reader = new FileReader();
 
-  reader.onerror = function() {
-    document.getElementById('file_name').textContent = '⚠️ Error al leer el archivo';
-    btnEnviar.disabled = false;
-  };
+    // Cuando termina de leer el archivo correctamente
+    reader.onload = function(e) {
+      try {
+        archivoActualBase64 = e.target.result.split(',');
+        fileNameDisplay.innerText = '✅ ' + file.name;
+        if (btnEnviar) btnEnviar.disabled = false;
+      } catch (err) {
+        console.error("Tutor MJD - Error al procesar datos:", err);
+        fileNameDisplay.innerText = '⚠️ Error interno al preparar el archivo';
+        if (btnEnviar) btnEnviar.disabled = false;
+      }
+    };
 
-  reader.readAsDataURL(file);
+    // Si ocurre un error de lectura nativo del navegador
+    reader.onerror = function(err) {
+      console.error("Tutor MJD - Error de FileReader:", err);
+      fileNameDisplay.innerText = '⚠️ Error al leer el archivo. Intenta con otra foto.';
+      if (btnEnviar) btnEnviar.disabled = false;
+    };
+
+    reader.readAsDataURL(file);
+    
+  } catch (error) {
+    console.error("Tutor MJD - Error general:", error);
+    document.getElementById('file_name').innerText = '⚠️ Ocurrió un error inesperado';
+  }
 }
 
 function limpiarArchivo() {
