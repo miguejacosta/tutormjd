@@ -416,206 +416,159 @@ header {
 </div>
 <script>
 // ── Configuración de URL CORRECTA ─────────────────────────────────────
-const SERVER_URL = "https://tutor-mjd-api-411083505938.us-central1.run.app/chat";
+<script>
+/* ================= CONFIG ================= */
 
-// ── Estado (¡Súper importantes, no borrarlas!) ────────────────────────
-let historialSesion     = [];
+const SERVER_URL =
+"https://tutor-mjd-api-411083505938.us-central1.run.app/chat";
+
+let historialSesion = [];
 let archivoActualBase64 = null;
-let mimeTypeActual      = null;
+let mimeTypeActual = null;
 
-// ── Partículas matemáticas ───────────────────────────────────────────
-(function crearParticulas() {
-  const simbolos = ['∑', 'π', '∫', '√', 'Δ', '∞', 'θ', 'α', 'β', 'λ',
-                    'x²', 'f(x)', 'dy/dx', '=', '+', '÷', '×', 'log', 'sin', 'cos'];
-  const container = document.getElementById('particles');
-  if(!container) return;
-  simbolos.forEach((sym, i) => {
-    const el = document.createElement('span');
-    el.className = 'particle';
-    el.textContent = sym;
-    el.style.cssText = `
-      left: ${Math.random() * 95}%;
-      bottom: -30px;
-      --dur: ${10 + Math.random() * 14}s;
-      --delay: ${Math.random() * 12}s;
-      font-size: ${11 + Math.random() * 6}px;
-    `;
-    container.appendChild(el);
-  });
-})();
+/* ================= CHAT ================= */
 
-// ── Helpers ───────────────────────────────────────────────────────────
-function agregarMensaje(htmlContent, clase) {
-  const chat = document.getElementById('chat');
-  const div  = document.createElement('div');
-  div.className = `msg ${clase}`;
-  const label = clase === 'bot'
-    ? '<div class="msg-label">🤖 Tutor MJD</div>'
-    : '<div class="msg-label">👤 Tú</div>';
-  div.innerHTML = label + htmlContent;
+function agregarMensaje(html, clase){
+  const chat=document.getElementById("chat");
+  const div=document.createElement("div");
+  div.className="msg "+clase;
+  div.innerHTML=html;
   chat.appendChild(div);
-  chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' });
+  chat.scrollTop=chat.scrollHeight;
   return div;
 }
 
-function agregarIndicadorEscritura() {
-  const chat = document.getElementById('chat');
-  const div  = document.createElement('div');
-  div.className = 'msg bot';
-  div.id = 'typing-msg';
-  div.innerHTML = `
-    <div class="msg-label">🤖 Tutor MJD</div>
-    <div class="typing-indicator">
-      <span></span><span></span><span></span>
-    </div>`;
-  chat.appendChild(div);
-  chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' });
-  return div;
+function typing(){
+  const d=agregarMensaje("Escribiendo...","bot");
+  d.id="typing";
+  return d;
 }
 
-function procesarTextoSeguro(texto) {
-  const bloques = [];
-  const protegido = texto.replace(/(\$\$[\s\S]*?\$\$|\$[^\$\n]+?\$)/g, match => {
-    bloques.push(match);
-    return `MATHBLOCK_${bloques.length - 1}_END`;
-  });
-  let html = marked.parse(protegido);
-  bloques.forEach((bloque, i) => {
-    html = html.replace(`MATHBLOCK_${i}_END`, bloque);
-  });
-  return html;
-}
+/* ================= ARCHIVO (ARREGLADO) ================= */
 
-// ── Manejo de archivo (Blindado) ──────────────────────────────────────
-function manejarArchivo() {
-  try {
-    const input = document.getElementById('file_input');
-    if (!input || !input.files || input.files.length === 0) return;
-    
-    const file = input.files;
-    const btnEnviar = document.getElementById('btn_enviar');
-    const previewContainer = document.getElementById('preview_container');
-    const fileNameDisplay = document.getElementById('file_name');
+function manejarArchivo(){
+  try{
 
-    if (btnEnviar) btnEnviar.disabled = true;
-    if (previewContainer) previewContainer.style.display = 'flex';
-    if (fileNameDisplay) fileNameDisplay.textContent = '⏳ Procesando...';
+    const input=document.getElementById("file_input");
+    if(!input.files || input.files.length===0) return;
 
-    mimeTypeActual = file.type || 'application/pdf';
+    const file=input.files[0]; // ✅ CORRECTO
 
-    const reader = new FileReader();
+    const btn=document.getElementById("btn_enviar");
+    const box=document.getElementById("preview_container");
+    const name=document.getElementById("file_name");
 
-    reader.onload = function(e) {
-      try {
-        archivoActualBase64 = e.target.result.split(',');
-        if (fileNameDisplay) fileNameDisplay.textContent = '✅ ' + file.name;
-        if (btnEnviar) btnEnviar.disabled = false;
-      } catch (err) {
-        if (fileNameDisplay) fileNameDisplay.textContent = '⚠️ Error interno: ' + err.message;
-        if (btnEnviar) btnEnviar.disabled = false;
-      }
+    btn.disabled=true;
+    box.style.display="block";
+    name.textContent="⏳ Procesando...";
+
+    mimeTypeActual=file.type || "application/octet-stream";
+
+    const reader=new FileReader();
+
+    reader.onload=(e)=>{
+      const result=e.target.result;
+
+      // ✅ EXTRAER SOLO BASE64
+      archivoActualBase64=result.split(",")[1];
+
+      name.textContent="✅ "+file.name;
+      btn.disabled=false;
     };
 
-    reader.onerror = function() {
-      if (fileNameDisplay) fileNameDisplay.textContent = '⚠️ Error al leer el archivo desde tu dispositivo.';
-      if (btnEnviar) btnEnviar.disabled = false;
+    reader.onerror=()=>{
+      name.textContent="⚠️ Error leyendo archivo";
+      btn.disabled=false;
     };
 
     reader.readAsDataURL(file);
-    
-  } catch (error) {
-    // Si algo falla, mostramos el error técnico en la barra para diagnosticar
-    const fileNameDisplay = document.getElementById('file_name');
-    if (fileNameDisplay) {
-        fileNameDisplay.textContent = '⚠️ Error: ' + error.message;
+
+  }catch(err){
+    document.getElementById("file_name").textContent=
+    "⚠️ "+err.message;
+  }
+}
+
+function limpiarArchivo(){
+  document.getElementById("file_input").value="";
+  archivoActualBase64=null;
+  mimeTypeActual=null;
+  document.getElementById("preview_container").style.display="none";
+}
+
+/* ================= ENVÍO ================= */
+
+async function enviarMensaje(){
+
+  const input=document.getElementById("mensaje");
+  const txt=input.value.trim();
+
+  if(!txt && !archivoActualBase64) return;
+
+  let preview=txt;
+
+  if(archivoActualBase64){
+    if(mimeTypeActual.startsWith("image/")){
+      preview+=`<br><img style="max-width:100%"
+      src="data:${mimeTypeActual};base64,${archivoActualBase64}">`;
+    }else{
+      preview+="<br>📄 PDF adjunto";
     }
   }
-}
 
-function limpiarArchivo() {
-  const input = document.getElementById('file_input');
-  if(input) input.value = '';
-  archivoActualBase64 = null;
-  mimeTypeActual      = null;
-  const fileNameDisplay = document.getElementById('file_name');
-  if(fileNameDisplay) fileNameDisplay.textContent = '';
-  const previewContainer = document.getElementById('preview_container');
-  if(previewContainer) previewContainer.style.display = 'none';
-}
+  agregarMensaje(preview,"user");
+  input.value="";
 
-// ── Envío de mensaje ──────────────────────────────────────────────────
-async function enviarMensaje() {
-  const input = document.getElementById('mensaje');
-  const txt   = input.value.trim();
-
-  if (!txt && !archivoActualBase64) return;
-
-  let vistaPrevia = txt ? marked.parse(txt) : '';
-  if (archivoActualBase64) {
-    const nombreArchivo = document.getElementById('file_name').textContent.replace('✅ ', '');
-    vistaPrevia += mimeTypeActual.startsWith('image/')
-      ? `<img src="data:${mimeTypeActual};base64,${archivoActualBase64}" alt="Imagen adjunta">`
-      : `<p><i>📄 ${nombreArchivo}</i></p>`;
-  }
-
-  agregarMensaje(vistaPrevia, 'user');
-  input.value = '';
-
-  const payload = {
-    msg:       txt,
-    historial: [...historialSesion],
-    file_b64:  archivoActualBase64,
-    mime_type: mimeTypeActual
+  const payload={
+    msg:txt,
+    historial:[...historialSesion],
+    file_b64:archivoActualBase64 || null,
+    mime_type:mimeTypeActual || null
   };
 
   historialSesion.push({
-    role:    'user',
-    content: txt || '[El estudiante envió un archivo para análisis]'
+    role:"user",
+    content:txt || "[archivo enviado]"
   });
 
   limpiarArchivo();
 
-  const indicador = agregarIndicadorEscritura();
-  const btnEnviar = document.getElementById('btn_enviar');
-  if(btnEnviar) btnEnviar.disabled = true;
+  const t=typing();
 
-  try {
-    const res  = await fetch(SERVER_URL, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify(payload)
+  try{
+
+    const res=await fetch(SERVER_URL,{
+      method:"POST",
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
     });
 
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    indicador.remove();
+    const data=await res.json();
+    t.remove();
 
-    if (data.reply) {
-      historialSesion.push({ role: 'model', content: data.reply });
-      const htmlParseado = procesarTextoSeguro(data.reply);
-      const msgDiv = agregarMensaje(htmlParseado, 'bot');
-      if (window.MathJax) MathJax.typesetPromise([msgDiv]);
+    if(data.reply){
+      historialSesion.push({
+        role:"model",
+        content:data.reply
+      });
+
+      const div=agregarMensaje(data.reply,"bot");
+
+      if(window.MathJax)
+        MathJax.typesetPromise([div]);
     }
 
-  } catch (err) {
-    indicador.remove();
-    agregarMensaje('⚠️ Error de conexión. Revisa tu internet o avisa a tu profesor.', 'bot');
-    console.error('Error al contactar el servidor:', err);
-  } finally {
-    if(btnEnviar) btnEnviar.disabled = false;
+  }catch(e){
+    t.remove();
+    agregarMensaje("⚠️ Error de conexión","bot");
+    console.error(e);
   }
 }
 
-// ── Enter para enviar ─────────────────────────────────────────────────
-const inputMensaje = document.getElementById('mensaje');
-if(inputMensaje) {
-  inputMensaje.addEventListener('keypress', e => {
-    const btnEnviar = document.getElementById('btn_enviar');
-    if (e.key === 'Enter' && btnEnviar && !btnEnviar.disabled) {
-      enviarMensaje();
-    }
-  });
-}
+/* ENTER */
+mensaje.addEventListener("keypress",e=>{
+  if(e.key==="Enter") enviarMensaje();
+});
 </script>
 </body>
 </html>
