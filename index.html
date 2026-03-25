@@ -489,33 +489,44 @@ function procesarTextoSeguro(texto) {
 
 // ── Manejo de archivo ─────────────────────────────────────────────────
 function manejarArchivo() {
+
   const input = document.getElementById('file_input');
-  const file  = input.files;
-  if (!file) return;
+
+  // ✅ tomar el archivo real
+  if (!input.files || input.files.length === 0) return;
+  const file = input.files[0];
 
   const btnEnviar = document.getElementById('btn_enviar');
   btnEnviar.disabled = true;
 
   document.getElementById('file_name').textContent = '⏳ Procesando...';
   document.getElementById('preview_container').style.display = 'flex';
-  mimeTypeActual = file.type || 'application/pdf';
+
+  // ✅ mime correcto
+  mimeTypeActual = file.type || 'application/octet-stream';
 
   const reader = new FileReader();
 
   reader.onload = function(e) {
-    archivoActualBase64 = e.target.result.split(',');
-    document.getElementById('file_name').textContent = '✅ ' + file.name;
+
+    // ✅ EXTRAER SOLO BASE64 (ANTES LO ENVIABAS MAL)
+    archivoActualBase64 = e.target.result.split(',')[1];
+
+    document.getElementById('file_name').textContent =
+      '✅ ' + file.name;
+
     btnEnviar.disabled = false;
   };
 
   reader.onerror = function() {
-    document.getElementById('file_name').textContent = '⚠️ Error al leer el archivo';
+    document.getElementById('file_name').textContent =
+      '⚠️ Error al leer el archivo';
     btnEnviar.disabled = false;
   };
 
+  // ✅ ahora sí lee correctamente
   reader.readAsDataURL(file);
 }
-
 function limpiarArchivo() {
   document.getElementById('file_input').value = '';
   archivoActualBase64 = null;
