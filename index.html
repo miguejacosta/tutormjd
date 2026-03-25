@@ -489,35 +489,42 @@ function procesarTextoSeguro(texto) {
 
 // ── Manejo de archivo ─────────────────────────────────────────────────
 function manejarArchivo() {
-  try {
-    const input = document.getElementById('file_input');
-    const file  = input.files;
-    if (!file) return;
 
-    const btnEnviar = document.getElementById('btn_enviar');
-    if (btnEnviar) btnEnviar.disabled = true;
+const file_input = document.getElementById("file_input");
+const file = file_input.files;   
 
-    const fileNameDisplay = document.getElementById('file_name');
-    const previewContainer = document.getElementById('preview_container');
+if (!file) return;
 
-    fileNameDisplay.innerText = '⏳ Procesando...';
-    previewContainer.style.display = 'flex';
-    mimeTypeActual = file.type || 'application/pdf';
+const btn = document.getElementById("btn_enviar");
+if(btn) btn.disabled = true;
 
-    const reader = new FileReader();
+const nombreArchivo = file.name || "Archivo adjunto";
 
-    // Cuando termina de leer el archivo correctamente
-    reader.onload = function(e) {
-      try {
-        archivoActualBase64 = e.target.result.split(',');
-        fileNameDisplay.innerText = '✅ ' + file.name;
-        if (btnEnviar) btnEnviar.disabled = false;
-      } catch (err) {
-        console.error("Tutor MJD - Error al procesar datos:", err);
-        fileNameDisplay.innerText = '⚠️ Error interno al preparar el archivo';
-        if (btnEnviar) btnEnviar.disabled = false;
-      }
-    };
+document.getElementById("file_name").innerText = "⏳ Procesando...";
+document.getElementById("preview_container").style.display = "flex";
+
+mimeTypeActual = file.type || "application/pdf";
+
+const reader = new FileReader();
+
+reader.onload = function(e) {
+
+    archivoActualBase64 = e.target.result.split(',');
+
+    document.getElementById("file_name").innerText =
+        "✅ " + nombreArchivo;
+
+    if(btn) btn.disabled = false;
+};
+
+reader.onerror = function() {
+    document.getElementById("file_name").innerText =
+        "⚠️ Error al leer archivo";
+    if(btn) btn.disabled = false;
+};
+
+reader.readAsDataURL(file);
+}
 
     // Si ocurre un error de lectura nativo del navegador
     reader.onerror = function(err) {
