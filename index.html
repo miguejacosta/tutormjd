@@ -414,160 +414,184 @@ header {
     title="Enviar"
   >➤</button>
 </div>
+
 <script>
 // ── Configuración de URL CORRECTA ─────────────────────────────────────
-<script>
-/* ================= CONFIG ================= */
+const SERVER_URL = "https://tutor-mjd-api-411083505938.us-central1.run.app/chat";
 
-const SERVER_URL =
-"https://tutor-mjd-api-411083505938.us-central1.run.app/chat";
-
-let historialSesion = [];
+// ── Estado ───────────────────────────────────────────────────────────
+let historialSesion     = [];
 let archivoActualBase64 = null;
-let mimeTypeActual = null;
+let mimeTypeActual      = null;
 
-/* ================= CHAT ================= */
+// ── Partículas matemáticas ───────────────────────────────────────────
+(function crearParticulas() {
+  const simbolos = ['∑', 'π', '∫', '√', 'Δ', '∞', 'θ', 'α', 'β', 'λ',
+                    'x²', 'f(x)', 'dy/dx', '=', '+', '÷', '×', 'log', 'sin', 'cos'];
+  const container = document.getElementById('particles');
+  simbolos.forEach((sym, i) => {
+    const el = document.createElement('span');
+    el.className = 'particle';
+    el.textContent = sym;
+    el.style.cssText = `
+      left: ${Math.random() * 95}%;
+      bottom: -30px;
+      --dur: ${10 + Math.random() * 14}s;
+      --delay: ${Math.random() * 12}s;
+      font-size: ${11 + Math.random() * 6}px;
+    `;
+    container.appendChild(el);
+  });
+})();
 
-function agregarMensaje(html, clase){
-  const chat=document.getElementById("chat");
-  const div=document.createElement("div");
-  div.className="msg "+clase;
-  div.innerHTML=html;
+// ── Helpers ───────────────────────────────────────────────────────────
+function agregarMensaje(htmlContent, clase) {
+  const chat = document.getElementById('chat');
+  const div  = document.createElement('div');
+  div.className = `msg ${clase}`;
+  const label = clase === 'bot'
+    ? '<div class="msg-label">🤖 Tutor MJD</div>'
+    : '<div class="msg-label">👤 Tú</div>';
+  div.innerHTML = label + htmlContent;
   chat.appendChild(div);
-  chat.scrollTop=chat.scrollHeight;
+  chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' });
   return div;
 }
 
-function typing(){
-  const d=agregarMensaje("Escribiendo...","bot");
-  d.id="typing";
-  return d;
+function agregarIndicadorEscritura() {
+  const chat = document.getElementById('chat');
+  const div  = document.createElement('div');
+  div.className = 'msg bot';
+  div.id = 'typing-msg';
+  div.innerHTML = `
+    <div class="msg-label">🤖 Tutor MJD</div>
+    <div class="typing-indicator">
+      <span></span><span></span><span></span>
+    </div>`;
+  chat.appendChild(div);
+  chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' });
+  return div;
 }
 
-/* ================= ARCHIVO (ARREGLADO) ================= */
+// Protege el LaTeX durante el parseo de Markdown
+function procesarTextoSeguro(texto) {
+  const bloques = [];
+  const protegido = texto.replace(/(\$\$[\s\S]*?\$\$|\$[^\$\n]+?\$)/g, match => {
+    bloques.push(match);
+    return `MATHBLOCK_${bloques.length - 1}_END`;
+  });
+  let html = marked.parse(protegido);
+  bloques.forEach((bloque, i) => {
+    html = html.replace(`MATHBLOCK_${i}_END`, bloque);
+  });
+  return html;
+}
 
-function manejarArchivo(){
-  try{
+// ── Manejo de archivo ─────────────────────────────────────────────────
+function manejarArchivo() {
+  const input = document.getElementById('file_input');
+  const file  = input.files;
+  if (!file) return;
 
-    const input=document.getElementById("file_input");
-    if(!input.files || input.files.length===0) return;
+  const btnEnviar = document.getElementById('btn_enviar');
+  btnEnviar.disabled = true;
 
-    const file=input.files[0]; // ✅ CORRECTO
+  document.getElementById('file_name').textContent = '⏳ Procesando...';
+  document.getElementById('preview_container').style.display = 'flex';
+  mimeTypeActual = file.type || 'application/pdf';
 
-    const btn=document.getElementById("btn_enviar");
-    const box=document.getElementById("preview_container");
-    const name=document.getElementById("file_name");
+  const reader = new FileReader();
 
-    btn.disabled=true;
-    box.style.display="block";
-    name.textContent="⏳ Procesando...";
+  reader.onload = function(e) {
+    archivoActualBase64 = e.target.result.split(',');
+    document.getElementById('file_name').textContent = '✅ ' + file.name;
+    btnEnviar.disabled = false;
+  };
 
-    mimeTypeActual=file.type || "application/octet-stream";
+  reader.onerror = function() {
+    document.getElementById('file_name').textContent = '⚠️ Error al leer el archivo';
+    btnEnviar.disabled = false;
+  };
 
-    const reader=new FileReader();
+  reader.readAsDataURL(file);
+}
 
-    reader.onload=(e)=>{
-      const result=e.target.result;
+function limpiarArchivo() {
+  document.getElementById('file_input').value = '';
+  archivoActualBase64 = null;
+  mimeTypeActual      = null;
+  document.getElementById('file_name').textContent = '';
+  document.getElementById('preview_container').style.display = 'none';
+}
 
-      // ✅ EXTRAER SOLO BASE64
-      archivoActualBase64=result.split(",")[1];
+// ── Envío de mensaje ──────────────────────────────────────────────────
+async function enviarMensaje() {
+  const input = document.getElementById('mensaje');
+  const txt   = input.value.trim();
 
-      name.textContent="✅ "+file.name;
-      btn.disabled=false;
-    };
+  if (!txt && !archivoActualBase64) return;
 
-    reader.onerror=()=>{
-      name.textContent="⚠️ Error leyendo archivo";
-      btn.disabled=false;
-    };
-
-    reader.readAsDataURL(file);
-
-  }catch(err){
-    document.getElementById("file_name").textContent=
-    "⚠️ "+err.message;
+  // Construir vista previa del mensaje de usuario
+  let vistaPrevia = txt ? marked.parse(txt) : '';
+  if (archivoActualBase64) {
+    const nombreArchivo = document.getElementById('file_name').textContent.replace('✅ ', '');
+    vistaPrevia += mimeTypeActual.startsWith('image/')
+      ? `<img src="data:${mimeTypeActual};base64,${archivoActualBase64}" alt="Imagen adjunta">`
+      : `<p><i>📄 ${nombreArchivo}</i></p>`;
   }
-}
 
-function limpiarArchivo(){
-  document.getElementById("file_input").value="";
-  archivoActualBase64=null;
-  mimeTypeActual=null;
-  document.getElementById("preview_container").style.display="none";
-}
+  agregarMensaje(vistaPrevia, 'user');
+  input.value = '';
 
-/* ================= ENVÍO ================= */
-
-async function enviarMensaje(){
-
-  const input=document.getElementById("mensaje");
-  const txt=input.value.trim();
-
-  if(!txt && !archivoActualBase64) return;
-
-  let preview=txt;
-
-  if(archivoActualBase64){
-    if(mimeTypeActual.startsWith("image/")){
-      preview+=`<br><img style="max-width:100%"
-      src="data:${mimeTypeActual};base64,${archivoActualBase64}">`;
-    }else{
-      preview+="<br>📄 PDF adjunto";
-    }
-  }
-
-  agregarMensaje(preview,"user");
-  input.value="";
-
-  const payload={
-    msg:txt,
-    historial:[...historialSesion],
-    file_b64:archivoActualBase64 || null,
-    mime_type:mimeTypeActual || null
+  const payload = {
+    msg:       txt,
+    historial: [...historialSesion],
+    file_b64:  archivoActualBase64,
+    mime_type: mimeTypeActual
   };
 
   historialSesion.push({
-    role:"user",
-    content:txt || "[archivo enviado]"
+    role:    'user',
+    content: txt || '[El estudiante envió un archivo para análisis]'
   });
 
   limpiarArchivo();
 
-  const t=typing();
+  const indicador = agregarIndicadorEscritura();
+  document.getElementById('btn_enviar').disabled = true;
 
-  try{
-
-    const res=await fetch(SERVER_URL,{
-      method:"POST",
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(payload)
+  try {
+    const res  = await fetch(SERVER_URL, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload)
     });
 
-    const data=await res.json();
-    t.remove();
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    indicador.remove();
 
-    if(data.reply){
-      historialSesion.push({
-        role:"model",
-        content:data.reply
-      });
-
-      const div=agregarMensaje(data.reply,"bot");
-
-      if(window.MathJax)
-        MathJax.typesetPromise([div]);
+    if (data.reply) {
+      historialSesion.push({ role: 'model', content: data.reply });
+      const htmlParseado = procesarTextoSeguro(data.reply);
+      const msgDiv = agregarMensaje(htmlParseado, 'bot');
+      if (window.MathJax) MathJax.typesetPromise([msgDiv]);
     }
 
-  }catch(e){
-    t.remove();
-    agregarMensaje("⚠️ Error de conexión","bot");
-    console.error(e);
+  } catch (err) {
+    indicador.remove();
+    agregarMensaje('⚠️ Error de conexión. Revisa tu internet o avisa a tu profesor.', 'bot');
+    console.error('Error al contactar el servidor:', err);
+  } finally {
+    document.getElementById('btn_enviar').disabled = false;
   }
 }
 
-/* ENTER */
-mensaje.addEventListener("keypress",e=>{
-  if(e.key==="Enter") enviarMensaje();
+// ── Enter para enviar ─────────────────────────────────────────────────
+document.getElementById('mensaje').addEventListener('keypress', e => {
+  if (e.key === 'Enter' && !document.getElementById('btn_enviar').disabled) {
+    enviarMensaje();
+  }
 });
 </script>
 </body>
