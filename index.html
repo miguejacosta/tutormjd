@@ -3,610 +3,203 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="description" content="Tutor MJD — Tu tutor de matemáticas con inteligencia artificial">
-<meta name="theme-color" content="#0d1b2a">
 <title>Tutor MJD</title>
 
-<!-- MathJax -->
 <script>
-window.MathJax = {
-  tex: {
-    inlineMath: [['$', '$']],
-    displayMath: [['$$','$$']],
-    processEscapes: true
-  },
-  svg: { fontCache: 'global' }
-};
+window.MathJax = { tex: { inlineMath: [['$', '$']], displayMath: [['$$','$$']], processEscapes: true }, svg: {fontCache: 'global'} };
 </script>
-<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
-<!-- Google Fonts -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-
 <style>
-/* ── Variables de diseño ── */
-:root {
-  --bg-deep:     #0d1b2a;
-  --bg-card:     #112236;
-  --bg-input:    #0a1520;
-  --accent:      #f0c040;
-  --accent-soft: rgba(240,192,64,0.12);
-  --accent-glow: rgba(240,192,64,0.25);
-  --blue-bright: #4ab3f4;
-  --blue-soft:   rgba(74,179,244,0.12);
-  --text-main:   #e8edf2;
-  --text-muted:  #7a9bb5;
-  --border:      rgba(74,179,244,0.18);
-  --user-bg:     linear-gradient(135deg, #1a3a5c, #1e4870);
-  --bot-bg:      #112236;
-  --radius-lg:   16px;
-  --radius-md:   10px;
-  --radius-sm:   6px;
-  --font-main:   'Space Grotesk', sans-serif;
-  --font-mono:   'JetBrains Mono', monospace;
-  --shadow:      0 4px 24px rgba(0,0,0,0.4);
-}
+:root { --main: #0056b3; --bg: #f0f2f5; --chat-bg: #ffffff; }
+* { box-sizing: border-box; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+body { margin: 0; background: var(--bg); display: flex; flex-direction: column; height: 100vh; }
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+header { background: var(--main); color: white; padding: 15px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 10;}
+.title { font-size: 1.3rem; font-weight: bold; margin:0;}
 
-body {
-  background: var(--bg-deep);
-  color: var(--text-main);
-  font-family: var(--font-main);
-  height: 100dvh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  position: relative;
-}
-
-/* ── Partículas de fondo ── */
-.particles {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  overflow: hidden;
-}
-.particle {
-  position: absolute;
-  color: var(--accent);
-  font-family: var(--font-mono);
-  font-size: 13px;
-  opacity: 0;
-  animation: floatUp var(--dur, 12s) var(--delay, 0s) ease-in-out infinite;
-  user-select: none;
-}
-@keyframes floatUp {
-  0%   { opacity: 0; transform: translateY(0) rotate(0deg); }
-  15%  { opacity: 0.18; }
-  80%  { opacity: 0.10; }
-  100% { opacity: 0; transform: translateY(-100vh) rotate(20deg); }
-}
-
-/* ── Header ── */
-header {
-  position: relative;
-  z-index: 10;
-  background: linear-gradient(180deg, #0a1520 0%, var(--bg-deep) 100%);
-  border-bottom: 1px solid var(--border);
-  padding: 14px 20px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  flex-shrink: 0;
-}
-
-.logo-wrap {
-  width: 46px;
-  height: 46px;
-  background: var(--accent-soft);
-  border: 1.5px solid var(--accent);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  position: relative;
-  overflow: hidden;
-}
-.logo-wrap::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at 50% 30%, rgba(240,192,64,0.2), transparent 70%);
-}
-.logo-svg { width: 28px; height: 28px; position: relative; z-index: 1; }
-
-.header-text { flex: 1; min-width: 0; }
-.header-text h1 {
-  font-size: 1.15rem;
-  font-weight: 600;
-  color: var(--text-main);
-  letter-spacing: 0.01em;
-}
-.header-text p {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  margin-top: 1px;
-}
-
-.status-dot {
-  width: 8px; height: 8px;
-  background: #4ade80;
-  border-radius: 50%;
-  box-shadow: 0 0 8px #4ade80;
-  animation: pulse-dot 2.5s ease-in-out infinite;
-  flex-shrink: 0;
-}
-@keyframes pulse-dot {
-  0%,100% { opacity: 1; transform: scale(1); }
-  50%      { opacity: 0.6; transform: scale(1.3); }
-}
-
-/* ── Área de chat ── */
-#chat {
-  flex: 1;
-  overflow-y: auto;
-  padding: 20px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  position: relative;
-  z-index: 1;
-  scroll-behavior: smooth;
-}
-
-#chat::-webkit-scrollbar { width: 4px; }
-#chat::-webkit-scrollbar-track { background: transparent; }
-#chat::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
-/* ── Burbujas ── */
-.msg {
-  max-width: 88%;
-  padding: 13px 16px;
-  border-radius: var(--radius-lg);
-  font-size: 15px;
-  line-height: 1.55;
-  word-wrap: break-word;
-  animation: slideIn 0.25s ease-out both;
-}
-@keyframes slideIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.msg img { max-width: 100%; border-radius: var(--radius-md); margin-top: 8px; }
-.msg p  { margin: 0 0 8px; }
+#chat { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
+.msg { max-width: 85%; padding: 12px 15px; border-radius: 18px; font-size: 15px; line-height: 1.4; word-wrap: break-word; }
+.msg img { max-width: 100%; border-radius: 10px; margin-top: 5px; }
+.msg p { margin: 0 0 8px 0; }
 .msg p:last-child { margin-bottom: 0; }
-.msg ul, .msg ol { padding-left: 20px; margin: 6px 0; }
-.msg li { margin-bottom: 4px; }
-.msg code {
-  background: rgba(74,179,244,0.1);
-  color: var(--blue-bright);
-  font-family: var(--font-mono);
-  font-size: 13px;
-  padding: 1px 5px;
-  border-radius: 4px;
-}
 
-.user {
-  align-self: flex-end;
-  background: var(--user-bg);
-  border: 1px solid rgba(74,179,244,0.2);
-  border-bottom-right-radius: 4px;
-  box-shadow: var(--shadow);
-}
+.user { align-self: flex-end; background: #dcf8c6; border-bottom-right-radius: 4px; }
+.bot { align-self: flex-start; background: var(--chat-bg); border-bottom-left-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
 
-.bot {
-  align-self: flex-start;
-  background: var(--bot-bg);
-  border: 1px solid var(--border);
-  border-bottom-left-radius: 4px;
-  box-shadow: var(--shadow);
-}
-
-/* Label del emisor */
-.msg-label {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  margin-bottom: 6px;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-.bot .msg-label  { color: var(--accent); }
-.user .msg-label { color: var(--blue-bright); }
-
-/* Indicador de escritura */
-.typing-indicator {
-  display: flex;
-  gap: 5px;
-  align-items: center;
-  padding: 6px 0 2px;
-}
-.typing-indicator span {
-  width: 7px; height: 7px;
-  background: var(--accent);
-  border-radius: 50%;
-  animation: bounce 1.2s ease-in-out infinite;
-}
-.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
-.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
-@keyframes bounce {
-  0%,80%,100% { transform: translateY(0); opacity: 0.5; }
-  40%          { transform: translateY(-6px); opacity: 1; }
-}
-
-/* ── Preview de archivo ── */
 #preview_container {
-  display: none;
-  padding: 10px 16px;
-  background: var(--accent-soft);
-  border-top: 1px solid rgba(240,192,64,0.25);
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  position: relative;
-  z-index: 2;
-  flex-shrink: 0;
+  display:none; padding:10px 15px; background:#e9ecef;
+  border-top:1px solid #ddd; font-size:14px; color:#495057;
+  align-items:center; justify-content:space-between;
 }
-#file_name {
-  font-size: 13px;
-  color: var(--accent);
-  font-family: var(--font-mono);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
-}
-.btn-remove {
-  background: rgba(239,68,68,0.2);
-  color: #f87171;
-  border: 1px solid rgba(239,68,68,0.3);
-  border-radius: 50%;
-  width: 26px; height: 26px;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 12px;
-  flex-shrink: 0;
-  transition: background 0.2s;
-}
-.btn-remove:hover { background: rgba(239,68,68,0.35); }
+#preview_container span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:80%; font-weight:bold; }
+.btn-remove { background:#dc3545; color:white; border:none; border-radius:50%; width:28px; height:28px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:14px; }
 
-/* ── Área de input ── */
-#input-area {
-  background: var(--bg-input);
-  border-top: 1px solid var(--border);
-  padding: 12px 14px;
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  position: relative;
-  z-index: 2;
-  flex-shrink: 0;
-}
+#input-area { background:white; padding:10px; display:flex; gap:8px; border-top:1px solid #ddd; align-items:center; }
 
-#mensaje {
-  flex: 1;
-  background: var(--bg-card);
-  color: var(--text-main);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 11px 18px;
-  font-size: 15px;
-  font-family: var(--font-main);
-  outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-#mensaje::placeholder { color: var(--text-muted); }
-#mensaje:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-glow);
-}
+input[type="text"] { flex:1; padding:12px 15px; border-radius:20px; border:1px solid #ccc; font-size:16px; outline:none; transition:border 0.3s; }
+input[type="text"]:focus { border-color: var(--main); }
 
-.btn-action {
-  width: 44px; height: 44px;
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 18px;
-  flex-shrink: 0;
-  transition: transform 0.15s, background 0.2s;
-}
-.btn-action:active { transform: scale(0.92); }
-.btn-action:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-
-.btn-clip {
-  background: rgba(74,179,244,0.15);
-  border: 1px solid rgba(74,179,244,0.3);
-  color: var(--blue-bright);
-}
-.btn-clip:hover { background: rgba(74,179,244,0.25); }
-
-.btn-send {
-  background: var(--accent);
-  color: var(--bg-deep);
-}
-.btn-send:hover:not(:disabled) { background: #f5d060; }
-
-/* ── Responsive ── */
-@media (min-width: 680px) {
-  header, #input-area, #preview_container { padding-left: 28px; padding-right: 28px; }
-  #chat { padding: 24px 28px; }
-  .msg { max-width: 75%; }
-}
-
-/* ── Scrollbar Firefox ── */
-#chat { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+.btn { background: var(--main); color:white; border:none; width:45px; height:45px; border-radius:50%; font-size:18px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition: background 0.2s; }
+.btn:disabled { background:#adb5bd; cursor:not-allowed; }
+.btn-clip { background:#6c757d; font-size:20px; }
 </style>
 </head>
 
 <body>
 
-<!-- Partículas matemáticas de fondo -->
-<div class="particles" aria-hidden="true" id="particles"></div>
-
-<!-- Header -->
 <header>
-  <div class="logo-wrap" aria-hidden="true">
-    <svg class="logo-svg" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <!-- Cabeza del robot -->
-      <rect x="4" y="6" width="20" height="14" rx="4" fill="#f0c040" opacity="0.9"/>
-      <!-- Ojos -->
-      <circle cx="10" cy="12" r="2.5" fill="#0d1b2a"/>
-      <circle cx="18" cy="12" r="2.5" fill="#0d1b2a"/>
-      <circle cx="11" cy="11" r="0.9" fill="#4ab3f4"/>
-      <circle cx="19" cy="11" r="0.9" fill="#4ab3f4"/>
-      <!-- Antena -->
-      <line x1="14" y1="6" x2="14" y2="2" stroke="#f0c040" stroke-width="1.5" stroke-linecap="round"/>
-      <circle cx="14" cy="2" r="1.5" fill="#4ab3f4"/>
-      <!-- Boca / sonrisa -->
-      <path d="M10 16.5 Q14 19 18 16.5" stroke="#0d1b2a" stroke-width="1.3" stroke-linecap="round" fill="none"/>
-      <!-- Cuerpo -->
-      <rect x="9" y="20" width="10" height="5" rx="2" fill="#f0c040" opacity="0.7"/>
-      <!-- Piernas -->
-      <rect x="9"  y="25" width="3.5" height="2.5" rx="1" fill="#f0c040" opacity="0.5"/>
-      <rect x="15.5" y="25" width="3.5" height="2.5" rx="1" fill="#f0c040" opacity="0.5"/>
-    </svg>
-  </div>
-  <div class="header-text">
-    <h1>Tutor MJD</h1>
-    <p>Tu tutor de matemáticas con IA</p>
-  </div>
-  <div class="status-dot" title="En línea" aria-label="Servicio activo"></div>
+<h1 class="title">🤖 Tutor MJD</h1>
 </header>
 
-<!-- Chat -->
-<main id="chat" role="log" aria-live="polite" aria-label="Conversación con el tutor">
-  <div class="msg bot">
-    <div class="msg-label">🤖 Tutor MJD</div>
-    ¡Hola! Soy tu tutor de matemáticas. Puedes escribirme cualquier duda o tocar el 📎 para enviarme una foto de tu cuaderno o guía de clase. ¡Empecemos!
-  </div>
-</main>
-
-<!-- Preview de archivo adjunto -->
-<div id="preview_container" role="status" aria-live="polite">
-  <span id="file_name">Archivo seleccionado</span>
-  <button class="btn-remove" onclick="limpiarArchivo()" aria-label="Quitar archivo adjunto">✖</button>
+<div id="chat">
+<div class="msg bot">
+¡Hola! Soy Tutor MJD. Puedes escribirme tu duda matemática o tocar el clip (📎) para tomarle una foto a tu guía de clase o a tu cuaderno. ¡Empecemos!
+</div>
 </div>
 
-<!-- Input -->
+<div id="preview_container">
+<span id="file_name">Archivo seleccionado</span>
+<button class="btn-remove" onclick="limpiarArchivo()">✖</button>
+</div>
+
 <div id="input-area">
-  <input
-    type="file"
-    id="file_input"
-    accept="image/*,application/pdf"
-    style="display:none"
-    aria-label="Adjuntar imagen o PDF"
-    onchange="manejarArchivo()"
-  >
-  <button
-    class="btn-action btn-clip"
-    onclick="document.getElementById('file_input').click()"
-    aria-label="Adjuntar archivo"
-    title="Adjuntar imagen o PDF"
-  >📎</button>
-  <input
-    type="text"
-    id="mensaje"
-    placeholder="Escribe tu duda aquí..."
-    autocomplete="off"
-    aria-label="Escribe tu pregunta de matemáticas"
-  >
-  <button
-    id="btn_enviar"
-    class="btn-action btn-send"
-    onclick="enviarMensaje()"
-    aria-label="Enviar mensaje"
-    title="Enviar"
-  >➤</button>
+<input type="file" id="file_input" accept="image/*,application/pdf" style="display:none;" onchange="manejarArchivo()">
+<button class="btn btn-clip" onclick="document.getElementById('file_input').click()">📎</button>
+<input type="text" id="mensaje" placeholder="Escribe aquí tu duda..." autocomplete="off"/>
+<button id="btn_enviar" class="btn" onclick="enviarMensaje()">➤</button>
 </div>
 
 <script>
-// ── Configuración de URL ──────────────────────────────────────────────
+
+// ── URL del backend en Cloud Run ──
 const SERVER_URL = "https://tutor-mjd-api-411083505938.us-central1.run.app/chat";
 
-// ── Estado ───────────────────────────────────────────────────────────
-let historialSesion     = [];
+let historialSesion = [];
 let archivoActualBase64 = null;
-let mimeTypeActual      = null;
+let mimeTypeActual = null;
 
-// ── Partículas matemáticas ───────────────────────────────────────────
-(function crearParticulas() {
-  const simbolos = ['∑', 'π', '∫', '√', 'Δ', '∞', 'θ', 'α', 'β', 'λ',
-                    'x²', 'f(x)', 'dy/dx', '=', '+', '÷', '×', 'log', 'sin', 'cos'];
-  const container = document.getElementById('particles');
-  simbolos.forEach((sym, i) => {
-    const el = document.createElement('span');
-    el.className = 'particle';
-    el.textContent = sym;
-    el.style.cssText = `
-      left: ${Math.random() * 95}%;
-      bottom: -30px;
-      --dur: ${10 + Math.random() * 14}s;
-      --delay: ${Math.random() * 12}s;
-      font-size: ${11 + Math.random() * 6}px;
-    `;
-    container.appendChild(el);
-  });
-})();
-
-// ── Helpers ───────────────────────────────────────────────────────────
 function agregarMensaje(htmlContent, clase) {
-  const chat = document.getElementById('chat');
-  const div  = document.createElement('div');
-  div.className = `msg ${clase}`;
-  const label = clase === 'bot'
-    ? '<div class="msg-label">🤖 Tutor MJD</div>'
-    : '<div class="msg-label">👤 Tú</div>';
-  div.innerHTML = label + htmlContent;
-  chat.appendChild(div);
-  chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' });
-  return div;
+  const chat = document.getElementById("chat");
+  const msgDiv = document.createElement("div");
+  msgDiv.className = `msg ${clase}`;
+  msgDiv.innerHTML = htmlContent;
+  chat.appendChild(msgDiv);
+  chat.scrollTop = chat.scrollHeight;
+  return msgDiv;
 }
 
-function agregarIndicadorEscritura() {
-  const chat = document.getElementById('chat');
-  const div  = document.createElement('div');
-  div.className = 'msg bot';
-  div.id = 'typing-msg';
-  div.innerHTML = `
-    <div class="msg-label">🤖 Tutor MJD</div>
-    <div class="typing-indicator">
-      <span></span><span></span><span></span>
-    </div>`;
-  chat.appendChild(div);
-  chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' });
-  return div;
-}
-
-// Protege el LaTeX durante el parseo de Markdown
 function procesarTextoSeguro(texto) {
-  const bloques = [];
-  const protegido = texto.replace(/(\$\$[\s\S]*?\$\$|\$[^\$\n]+?\$)/g, match => {
-    bloques.push(match);
-    return `MATHBLOCK_${bloques.length - 1}_END`;
+  const mathBlocks = [];
+  let textoProtegido = texto.replace(/(\$\$[\s\S]*?\$\$|\$[\s\S]*?\$)/g, (match) => {
+    mathBlocks.push(match);
+    return `###MATH_BLOCK_${mathBlocks.length - 1}###`;
   });
-  let html = marked.parse(protegido);
-  bloques.forEach((bloque, i) => {
-    html = html.replace(`MATHBLOCK_${i}_END`, bloque);
+  let htmlParseado = marked.parse(textoProtegido);
+  mathBlocks.forEach((block, index) => {
+    htmlParseado = htmlParseado.replace(`###MATH_BLOCK_${index}###`, block);
   });
-  return html;
+  return htmlParseado;
 }
 
-// ── Manejo de archivo ─────────────────────────────────────────────────
 function manejarArchivo() {
-  const input = document.getElementById('file_input');
-  const file  = input.files[0];   // ← BUG FIX: acceder al índice [0]
+  const file_input = document.getElementById("file_input");
+  const file = file_input.files[0]; // ← BUG CORREGIDO: era files sin [0]
   if (!file) return;
 
-  const btnEnviar = document.getElementById('btn_enviar');
-  btnEnviar.disabled = true;
+  const btn = document.getElementById("btn_enviar");
+  if(btn) btn.disabled = true;
 
-  document.getElementById('file_name').textContent = '⏳ Procesando...';
-  document.getElementById('preview_container').style.display = 'flex';
-  mimeTypeActual = file.type || 'application/pdf';
+  document.getElementById("file_name").innerText = "⏳ Procesando...";
+  document.getElementById("preview_container").style.display = "flex";
+  mimeTypeActual = file.type || "application/pdf";
 
   const reader = new FileReader();
-
   reader.onload = function(e) {
-    // BUG FIX: split(',')[1] para obtener solo el base64, no el data URL completo
-    archivoActualBase64 = e.target.result.split(',')[1];
-    document.getElementById('file_name').textContent = '✅ ' + file.name;
-    btnEnviar.disabled = false;
+    archivoActualBase64 = e.target.result.split(',')[1]; // ← BUG CORREGIDO: era split(',') sin [1]
+    document.getElementById("file_name").innerText = "✅ " + file.name;
+    if(btn) btn.disabled = false;
   };
-
   reader.onerror = function() {
-    document.getElementById('file_name').textContent = '⚠️ Error al leer el archivo';
-    btnEnviar.disabled = false;
+    document.getElementById("file_name").innerText = "⚠️ Error al leer archivo";
+    if(btn) btn.disabled = false;
   };
-
   reader.readAsDataURL(file);
 }
 
 function limpiarArchivo() {
-  document.getElementById('file_input').value = '';
+  document.getElementById("file_input").value = "";
   archivoActualBase64 = null;
-  mimeTypeActual      = null;
-  document.getElementById('file_name').textContent = '';
-  document.getElementById('preview_container').style.display = 'none';
+  mimeTypeActual = null;
+  document.getElementById("file_name").innerText = "";
+  document.getElementById("preview_container").style.display = "none";
 }
 
-// ── Envío de mensaje ──────────────────────────────────────────────────
 async function enviarMensaje() {
-  const input = document.getElementById('mensaje');
-  const txt   = input.value.trim();
+  const input = document.getElementById("mensaje");
+  const txt = input.value.trim();
+  if(!txt && !archivoActualBase64) return;
 
-  if (!txt && !archivoActualBase64) return;
-
-  // Construir vista previa del mensaje de usuario
-  let vistaPrevia = txt ? marked.parse(txt) : '';
+  let contenidoVisual = txt;
   if (archivoActualBase64) {
-    const nombreArchivo = document.getElementById('file_name').textContent.replace('✅ ', '');
-    vistaPrevia += mimeTypeActual.startsWith('image/')
-      ? `<img src="data:${mimeTypeActual};base64,${archivoActualBase64}" alt="Imagen adjunta">`
-      : `<p><i>📄 ${nombreArchivo}</i></p>`;
+    if (mimeTypeActual.startsWith('image/')) {
+      contenidoVisual += (txt ? "<br><br>" : "") +
+        `<img src="data:${mimeTypeActual};base64,${archivoActualBase64}">`;
+    } else {
+      const nombreLimpio = document.getElementById("file_name").innerText.replace("✅ ","");
+      contenidoVisual += (txt ? "<br><br>" : "") + `<i>📄 Archivo adjunto: ${nombreLimpio}</i>`;
+    }
   }
 
-  agregarMensaje(vistaPrevia, 'user');
-  input.value = '';
+  agregarMensaje(contenidoVisual, "user");
+  input.value = "";
 
   const payload = {
-    msg:       txt,
+    msg: txt,
     historial: [...historialSesion],
-    file_b64:  archivoActualBase64,
+    file_b64: archivoActualBase64,
     mime_type: mimeTypeActual
   };
 
   historialSesion.push({
-    role:    'user',
-    content: txt || '[El estudiante envió un archivo para análisis]'
+    role: "user",
+    content: txt || "[El estudiante envió un archivo para su análisis]"
   });
 
   limpiarArchivo();
 
-  const indicador = agregarIndicadorEscritura();
-  document.getElementById('btn_enviar').disabled = true;
+  const loadMsg = agregarMensaje("Tutor MJD está analizando...","bot");
 
   try {
-    const res  = await fetch(SERVER_URL, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify(payload)
+    const res = await fetch(SERVER_URL, {
+      method: "POST",
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
     });
-
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    indicador.remove();
+    loadMsg.remove();
 
-    if (data.reply) {
-      historialSesion.push({ role: 'model', content: data.reply });
+    if(data.reply) {
+      historialSesion.push({role: "model", content: data.reply});
       const htmlParseado = procesarTextoSeguro(data.reply);
-      const msgDiv = agregarMensaje(htmlParseado, 'bot');
-      if (window.MathJax) MathJax.typesetPromise([msgDiv]);
+      const msgDiv = agregarMensaje(htmlParseado, "bot");
+      if(window.MathJax) MathJax.typesetPromise([msgDiv]);
     }
-
-  } catch (err) {
-    indicador.remove();
-    agregarMensaje('⚠️ Error de conexión. Revisa tu internet o avisa a tu profesor.', 'bot');
-    console.error('Error al contactar el servidor:', err);
-  } finally {
-    document.getElementById('btn_enviar').disabled = false;
+  } catch(e) {
+    loadMsg.remove();
+    agregarMensaje("⚠️ Error de conexión. Revisa tu internet o avisa a los profesores.", "bot");
+    console.error(e);
   }
 }
 
-// ── Enter para enviar ─────────────────────────────────────────────────
-document.getElementById('mensaje').addEventListener('keypress', e => {
-  if (e.key === 'Enter' && !document.getElementById('btn_enviar').disabled) {
-    enviarMensaje();
+document.getElementById("mensaje").addEventListener("keypress", e => {
+  if(e.key === "Enter") {
+    const btn = document.getElementById("btn_enviar");
+    if(!btn.disabled) enviarMensaje();
   }
 });
+
 </script>
 </body>
 </html>
