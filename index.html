@@ -7,6 +7,7 @@
 <meta name="theme-color" content="#0d1b2a">
 <title>Tutor MJD</title>
 
+<!-- MathJax -->
 <script>
 window.MathJax = {
   tex: {
@@ -20,6 +21,7 @@ window.MathJax = {
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
+<!-- Google Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
@@ -347,20 +349,28 @@ header {
 
 <body>
 
+<!-- Partículas matemáticas de fondo -->
 <div class="particles" aria-hidden="true" id="particles"></div>
 
+<!-- Header -->
 <header>
   <div class="logo-wrap" aria-hidden="true">
     <svg class="logo-svg" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Cabeza del robot -->
       <rect x="4" y="6" width="20" height="14" rx="4" fill="#f0c040" opacity="0.9"/>
+      <!-- Ojos -->
       <circle cx="10" cy="12" r="2.5" fill="#0d1b2a"/>
       <circle cx="18" cy="12" r="2.5" fill="#0d1b2a"/>
       <circle cx="11" cy="11" r="0.9" fill="#4ab3f4"/>
       <circle cx="19" cy="11" r="0.9" fill="#4ab3f4"/>
+      <!-- Antena -->
       <line x1="14" y1="6" x2="14" y2="2" stroke="#f0c040" stroke-width="1.5" stroke-linecap="round"/>
       <circle cx="14" cy="2" r="1.5" fill="#4ab3f4"/>
+      <!-- Boca / sonrisa -->
       <path d="M10 16.5 Q14 19 18 16.5" stroke="#0d1b2a" stroke-width="1.3" stroke-linecap="round" fill="none"/>
+      <!-- Cuerpo -->
       <rect x="9" y="20" width="10" height="5" rx="2" fill="#f0c040" opacity="0.7"/>
+      <!-- Piernas -->
       <rect x="9"  y="25" width="3.5" height="2.5" rx="1" fill="#f0c040" opacity="0.5"/>
       <rect x="15.5" y="25" width="3.5" height="2.5" rx="1" fill="#f0c040" opacity="0.5"/>
     </svg>
@@ -372,6 +382,7 @@ header {
   <div class="status-dot" title="En línea" aria-label="Servicio activo"></div>
 </header>
 
+<!-- Chat -->
 <main id="chat" role="log" aria-live="polite" aria-label="Conversación con el tutor">
   <div class="msg bot">
     <div class="msg-label">🤖 Tutor MJD</div>
@@ -379,11 +390,13 @@ header {
   </div>
 </main>
 
+<!-- Preview de archivo adjunto -->
 <div id="preview_container" role="status" aria-live="polite">
   <span id="file_name">Archivo seleccionado</span>
   <button class="btn-remove" onclick="limpiarArchivo()" aria-label="Quitar archivo adjunto">✖</button>
 </div>
 
+<!-- Input -->
 <div id="input-area">
   <input
     type="file"
@@ -489,11 +502,8 @@ function procesarTextoSeguro(texto) {
 
 // ── Manejo de archivo ─────────────────────────────────────────────────
 function manejarArchivo() {
-
   const input = document.getElementById('file_input');
-
-  // ✅ FIX 1: tomar el archivo real
-  const file = input.files[0];
+  const file  = input.files[0];   // ← BUG FIX: acceder al índice [0]
   if (!file) return;
 
   const btnEnviar = document.getElementById('btn_enviar');
@@ -501,23 +511,19 @@ function manejarArchivo() {
 
   document.getElementById('file_name').textContent = '⏳ Procesando...';
   document.getElementById('preview_container').style.display = 'flex';
-
   mimeTypeActual = file.type || 'application/pdf';
 
   const reader = new FileReader();
 
   reader.onload = function(e) {
-
-    // ✅ FIX 2: SOLO el base64 (lo que espera Cloud Run)
+    // BUG FIX: split(',')[1] para obtener solo el base64, no el data URL completo
     archivoActualBase64 = e.target.result.split(',')[1];
-
     document.getElementById('file_name').textContent = '✅ ' + file.name;
     btnEnviar.disabled = false;
   };
 
   reader.onerror = function() {
-    document.getElementById('file_name').textContent =
-      '⚠️ Error al leer el archivo';
+    document.getElementById('file_name').textContent = '⚠️ Error al leer el archivo';
     btnEnviar.disabled = false;
   };
 
