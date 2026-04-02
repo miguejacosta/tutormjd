@@ -344,63 +344,89 @@ header {
 /* ── Scrollbar Firefox ── */
 #chat { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
 
-/* ── Panel de gráfica ── */
-#panel-grafica {
-  flex-shrink: 0;
+/* ── Imagen inline en el chat ── */
+.msg-graph {
+  margin-top: 10px;
+  cursor: zoom-in;
   position: relative;
-  z-index: 2;
-  background: var(--bg-card);
-  border-top: 1px solid var(--border);
-  max-height: 52vh;
-  display: flex;
-  flex-direction: column;
-}
-#toggle-grafica {
-  cursor: pointer;
-  padding: 9px 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-  user-select: none;
-}
-#toggle-grafica:hover { background: var(--accent-soft); }
-#grafica-content {
-  overflow-y: auto;
-  padding: 12px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  scrollbar-width: thin;
-  scrollbar-color: var(--border) transparent;
-}
-#img-triangulo {
+  display: inline-block;
   width: 100%;
+}
+.msg-graph img {
+  width: 100%;
+  max-width: 420px;
   border-radius: 10px;
-  box-shadow: 0 2px 14px rgba(0,0,0,0.45);
+  box-shadow: 0 2px 14px rgba(0,0,0,0.5);
   display: block;
+  transition: opacity 0.2s;
 }
-#ggb-wrapper {
-  border-radius: 10px;
-  overflow: hidden;
-  border: 1px solid var(--border);
-}
-#ggb-label {
-  padding: 7px 12px;
-  background: var(--bg-input);
+.msg-graph img:hover { opacity: 0.88; }
+.msg-graph-hint {
   font-size: 11px;
   color: var(--text-muted);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  font-weight: 600;
+  margin-top: 5px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
-#ggb-container { width: 100%; height: 260px; }
 
-@media (min-width: 680px) {
-  #panel-grafica { max-height: 60vh; }
-  #ggb-container { height: 320px; }
+/* ── Lightbox ── */
+#lightbox {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: rgba(0,0,0,0.92);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
 }
+#lightbox.open { display: flex; }
+@keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
+#lightbox img {
+  max-width: 96vw;
+  max-height: 82vh;
+  border-radius: 12px;
+  box-shadow: 0 4px 40px rgba(0,0,0,0.7);
+  object-fit: contain;
+}
+#lightbox-bar {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  padding: 12px 20px;
+  gap: 12px;
+  flex-shrink: 0;
+}
+#lightbox-back {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #fff;
+  border-radius: 20px;
+  padding: 7px 18px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-main);
+  transition: background 0.2s;
+}
+#lightbox-back:hover { background: rgba(255,255,255,0.2); }
+#lightbox-title {
+  color: rgba(255,255,255,0.7);
+  font-size: 13px;
+}
+#ggb-lightbox-wrapper {
+  width: 96vw;
+  max-width: 680px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  flex-shrink: 0;
+}
+#ggb-lightbox-container { width: 100%; height: 320px; }
 </style>
 </head>
 
@@ -451,18 +477,15 @@ header {
   </div>
 </main>
 
-<!-- ── Panel de gráfica (oculto hasta que la IA detecte un triángulo) ── -->
-<div id="panel-grafica" style="display:none;">
-  <div id="toggle-grafica" onclick="togglePanelGrafica()">
-    <span style="font-size:13px; font-weight:600; color:var(--accent);">📐 Triángulo del ejercicio</span>
-    <span id="toggle-arrow" style="color:var(--text-muted); font-size:12px;">▲ Ocultar</span>
+<!-- ── Lightbox de gráfica ── -->
+<div id="lightbox" onclick="cerrarLightbox(event)">
+  <div id="lightbox-bar">
+    <button id="lightbox-back" onclick="cerrarLightbox()">← Regresar</button>
+    <span id="lightbox-title">Triángulo del ejercicio</span>
   </div>
-  <div id="grafica-content">
-    <img id="img-triangulo" src="" alt="Triángulo rectángulo" />
-    <div id="ggb-wrapper">
-      <div id="ggb-label">🔭 Explora el triángulo — arrástralo y modifícalo</div>
-      <div id="ggb-container"></div>
-    </div>
+  <img id="lightbox-img" src="" alt="Triángulo rectángulo ampliado" />
+  <div id="ggb-lightbox-wrapper" style="margin-top:14px;">
+    <div id="ggb-lightbox-container"></div>
   </div>
 </div>
 
@@ -512,33 +535,32 @@ let historialSesion     = [];
 let archivoActualBase64 = null;
 let mimeTypeActual      = null;
 
-// ── GeoGebra y gráficas ───────────────────────────────────────────────
-let ggbApplet    = null;
-let panelVisible = true;
+// ── GeoGebra y lightbox ───────────────────────────────────────────────
+let ggbApplet = null;
 
-function iniciarGeoGebra() {
+function iniciarGeoGebra(containerId) {
   if (ggbApplet) return;
   ggbApplet = new GGBApplet({
-    appName:          "geometry",
-    width:            "100%",
-    height:           260,
-    showToolBar:      false,
-    showAlgebraInput: false,
-    showMenuBar:      false,
-    enableLabelDrags: true,
+    appName:             "geometry",
+    width:               "100%",
+    height:              320,
+    showToolBar:         false,
+    showAlgebraInput:    false,
+    showMenuBar:         false,
+    enableLabelDrags:    true,
     enableShiftDragZoom: true,
-    showZoomButtons:  true,
-    language:         "es",
-    appletOnLoad:     () => console.log("GeoGebra ✔")
+    showZoomButtons:     true,
+    language:            "es",
+    appletOnLoad:        () => console.log("GeoGebra ✔")
   }, true);
-  ggbApplet.inject("ggb-container");
+  ggbApplet.inject(containerId);
 }
 
 function dibujarEnGeoGebra(adj, opp) {
   if (!ggbApplet) return;
   try {
     ggbApplet.evalCommand("DeleteAll[]");
-    ggbApplet.evalCommand(`A = (0, 0)`);
+    ggbApplet.evalCommand("A = (0, 0)");
     ggbApplet.evalCommand(`B = (${adj.toFixed(4)}, 0)`);
     ggbApplet.evalCommand(`C = (${adj.toFixed(4)}, ${opp.toFixed(4)})`);
     ggbApplet.evalCommand("t = Polygon[A, B, C]");
@@ -548,54 +570,88 @@ function dibujarEnGeoGebra(adj, opp) {
     ggbApplet.setFilling("t", 0.15);
     ggbApplet.setColor("angTheta", 192, 57, 43);
     ggbApplet.evalCommand(
-      `ZoomIn[-0.5, -0.5, ${(adj + 1).toFixed(2)}, ${(opp + 1).toFixed(2)}]`
+      `ZoomIn[-0.5, -0.5, ${(adj+1).toFixed(2)}, ${(opp+1).toFixed(2)}]`
     );
-  } catch(e) { console.error("GeoGebra error:", e); }
+  } catch(e) { console.error("GeoGebra:", e); }
 }
 
-function togglePanelGrafica() {
-  const content = document.getElementById('grafica-content');
-  const arrow   = document.getElementById('toggle-arrow');
-  panelVisible  = !panelVisible;
-  content.style.display  = panelVisible ? 'flex' : 'none';
-  arrow.textContent = panelVisible ? '▲ Ocultar' : '▼ Ver gráfica';
+function abrirLightbox(imgSrc, adj, opp) {
+  document.getElementById('lightbox-img').src = imgSrc;
+  document.getElementById('lightbox').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  iniciarGeoGebra('ggb-lightbox-container');
+  setTimeout(() => dibujarEnGeoGebra(adj, opp), 900);
 }
 
-async function mostrarGrafica(params) {
-  const panel = document.getElementById('panel-grafica');
-  const img   = document.getElementById('img-triangulo');
-  panel.style.display = 'block';
-  panelVisible = true;
-  document.getElementById('grafica-content').style.display = 'flex';
-  document.getElementById('toggle-arrow').textContent = '▲ Ocultar';
+function cerrarLightbox(e) {
+  if (e && e.target !== document.getElementById('lightbox') &&
+      !document.getElementById('lightbox-back').contains(e.target)) return;
+  document.getElementById('lightbox').classList.remove('open');
+  document.body.style.overflow = '';
+}
 
-  // 1. Imagen matplotlib desde el backend
+async function mostrarGraficaEnChat(params) {
+  const qs = new URLSearchParams();
+  if (params.angulo)     qs.set("angulo",     params.angulo);
+  if (params.opuesto)    qs.set("opuesto",    params.opuesto);
+  if (params.adyacente)  qs.set("adyacente",  params.adyacente);
+  if (params.hipotenusa) qs.set("hipotenusa", params.hipotenusa);
+
+  // Calcular adj/opp para GeoGebra
+  let adj    = params.adyacente  ? parseFloat(params.adyacente)  : null;
+  let opp    = params.opuesto    ? parseFloat(params.opuesto)    : null;
+  const angR = params.angulo     ? parseFloat(params.angulo) * Math.PI / 180 : null;
+  const hyp  = params.hipotenusa ? parseFloat(params.hipotenusa) : null;
+  if (!adj && angR && hyp) adj = hyp * Math.cos(angR);
+  if (!opp && angR && hyp) opp = hyp * Math.sin(angR);
+  if (!adj && angR && opp) adj = opp / Math.tan(angR);
+  if (!opp && angR && adj) opp = adj * Math.tan(angR);
+  if (!adj) adj = 4;
+  if (!opp) opp = adj * Math.tan(angR || Math.PI/6);
+
+  const tipo  = params.tipo === 'resultado' ? 'resultado' : 'datos';
+  const label = tipo === 'resultado'
+    ? '📐 Triángulo resuelto — toca para explorar'
+    : '📐 Datos del ejercicio — toca para explorar';
+
+  // Crear contenedor en el último mensaje bot
+  const chat   = document.getElementById('chat');
+  const ultimo = chat.querySelector('.bot:last-child');
+  if (!ultimo) return;
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'msg-graph';
+
+  const img = document.createElement('img');
+  img.alt = 'Triángulo rectángulo';
+  img.src = '';
+  img.style.opacity = '0.4';
+
+  const hint = document.createElement('div');
+  hint.className = 'msg-graph-hint';
+  hint.innerHTML = `🔍 ${label}`;
+
+  wrapper.appendChild(img);
+  wrapper.appendChild(hint);
+  ultimo.appendChild(wrapper);
+  chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' });
+
+  // Cargar imagen desde backend
   try {
-    const qs = new URLSearchParams();
-    if (params.angulo)     qs.set("angulo",     params.angulo);
-    if (params.opuesto)    qs.set("opuesto",    params.opuesto);
-    if (params.adyacente)  qs.set("adyacente",  params.adyacente);
-    if (params.hipotenusa) qs.set("hipotenusa", params.hipotenusa);
     const res  = await fetch(`${BASE_URL}/graph?${qs.toString()}`);
     const data = await res.json();
-    if (data.imagen) img.src = "data:image/png;base64," + data.imagen;
-  } catch(e) { console.error("Error cargando gráfica:", e); }
-
-  // 2. Calcular adj/opp para GeoGebra
-  let adj = params.adyacente  ? parseFloat(params.adyacente)  : null;
-  let opp = params.opuesto    ? parseFloat(params.opuesto)    : null;
-  const angRad = params.angulo    ? parseFloat(params.angulo) * Math.PI / 180 : null;
-  const hyp    = params.hipotenusa? parseFloat(params.hipotenusa) : null;
-
-  if (!adj && angRad && hyp)  adj = hyp  * Math.cos(angRad);
-  if (!opp && angRad && hyp)  opp = hyp  * Math.sin(angRad);
-  if (!adj && angRad && opp)  adj = opp  / Math.tan(angRad);
-  if (!opp && angRad && adj)  opp = adj  * Math.tan(angRad);
-  if (!adj) adj = 4;
-  if (!opp) opp = adj * Math.tan(angRad || Math.PI / 6);
-
-  iniciarGeoGebra();
-  setTimeout(() => dibujarEnGeoGebra(adj, opp), 900);
+    if (data.imagen) {
+      const src = "data:image/png;base64," + data.imagen;
+      img.src = src;
+      img.style.opacity = '1';
+      img.style.transition = 'opacity 0.4s';
+      // Click → lightbox
+      wrapper.onclick = () => abrirLightbox(src, adj, opp);
+    }
+  } catch(e) {
+    console.error("Error cargando gráfica:", e);
+    wrapper.remove();
+  }
 }
 
 // ── Partículas matemáticas ───────────────────────────────────────────
@@ -765,7 +821,7 @@ async function enviarMensaje() {
 
     // ── Mostrar gráfica si la IA detectó un triángulo ──
     if (data.grafica) {
-      mostrarGrafica(data.grafica);
+      mostrarGraficaEnChat(data.grafica);
     }
 
   } catch (err) {
