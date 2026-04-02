@@ -19,7 +19,6 @@ window.MathJax = {
 </script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-<script src="https://www.geogebra.org/apps/deployggb.js"></script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -418,7 +417,7 @@ header {
   color: rgba(255,255,255,0.7);
   font-size: 13px;
 }
-#ggb-lightbox-container { width: 100%; height: 320px; }
+
 </style>
 </head>
 
@@ -524,46 +523,7 @@ let historialSesion     = [];
 let archivoActualBase64 = null;
 let mimeTypeActual      = null;
 
-// ── GeoGebra y lightbox ───────────────────────────────────────────────
-let ggbApplet = null;
-
-function iniciarGeoGebra(containerId) {
-  if (ggbApplet) return;
-  ggbApplet = new GGBApplet({
-    appName:             "geometry",
-    width:               "100%",
-    height:              320,
-    showToolBar:         false,
-    showAlgebraInput:    false,
-    showMenuBar:         false,
-    enableLabelDrags:    true,
-    enableShiftDragZoom: true,
-    showZoomButtons:     true,
-    language:            "es",
-    appletOnLoad:        () => console.log("GeoGebra ✔")
-  }, true);
-  ggbApplet.inject(containerId);
-}
-
-function dibujarEnGeoGebra(adj, opp) {
-  if (!ggbApplet) return;
-  try {
-    ggbApplet.evalCommand("DeleteAll[]");
-    ggbApplet.evalCommand("A = (0, 0)");
-    ggbApplet.evalCommand(`B = (${adj.toFixed(4)}, 0)`);
-    ggbApplet.evalCommand(`C = (${adj.toFixed(4)}, ${opp.toFixed(4)})`);
-    ggbApplet.evalCommand("t = Polygon[A, B, C]");
-    ggbApplet.evalCommand("angTheta = Angle[B, A, C]");
-    ggbApplet.setLabelVisible("angTheta", true);
-    ggbApplet.setColor("t", 41, 128, 185);
-    ggbApplet.setFilling("t", 0.15);
-    ggbApplet.setColor("angTheta", 192, 57, 43);
-    ggbApplet.evalCommand(
-      `ZoomIn[-0.5, -0.5, ${(adj+1).toFixed(2)}, ${(opp+1).toFixed(2)}]`
-    );
-  } catch(e) { console.error("GeoGebra:", e); }
-}
-
+// ── Lightbox ──────────────────────────────────────────────────────────
 function abrirLightbox(imgSrc) {
   document.getElementById('lightbox-img').src = imgSrc;
   document.getElementById('lightbox').classList.add('open');
@@ -583,18 +543,6 @@ async function mostrarGraficaEnChat(params) {
   if (params.opuesto)    qs.set("opuesto",    params.opuesto);
   if (params.adyacente)  qs.set("adyacente",  params.adyacente);
   if (params.hipotenusa) qs.set("hipotenusa", params.hipotenusa);
-
-  // Calcular adj/opp para GeoGebra
-  let adj    = params.adyacente  ? parseFloat(params.adyacente)  : null;
-  let opp    = params.opuesto    ? parseFloat(params.opuesto)    : null;
-  const angR = params.angulo     ? parseFloat(params.angulo) * Math.PI / 180 : null;
-  const hyp  = params.hipotenusa ? parseFloat(params.hipotenusa) : null;
-  if (!adj && angR && hyp) adj = hyp * Math.cos(angR);
-  if (!opp && angR && hyp) opp = hyp * Math.sin(angR);
-  if (!adj && angR && opp) adj = opp / Math.tan(angR);
-  if (!opp && angR && adj) opp = adj * Math.tan(angR);
-  if (!adj) adj = 4;
-  if (!opp) opp = adj * Math.tan(angR || Math.PI/6);
 
   const tipo  = params.tipo === 'resultado' ? 'resultado' : 'datos';
   const label = tipo === 'resultado'
